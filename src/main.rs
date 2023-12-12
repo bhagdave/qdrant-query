@@ -34,7 +34,7 @@ async fn main() {
     println!("query embedding");
     let search_results = qdrant.search("PRG", query_embedding.to_vec().unwrap().clone(), 5, None).await.unwrap();
     println!("RESULT");
-   for result in search_results {
+    for result in search_results {
         println!("Id:{:}, Score:{:}", result.id, result.score);  // Modify based on how you want to display the results
     }
 }
