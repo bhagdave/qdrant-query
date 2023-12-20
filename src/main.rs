@@ -5,11 +5,9 @@ use orca::{
     pipeline::Pipeline,
     prompt,
     prompt::context::Context,
-    prompts,
     qdrant::Qdrant,
-    record::{pdf::Pdf, Spin},
 };
-use serde_json::json;
+use serde_json::{Value, json};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,17 +25,47 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
-    println!("ARGS");
     let bert = Bert::new().build_model_and_tokenizer().await.unwrap();
-    println!("BERT");
 
     let qdrant = Qdrant::new("http://localhost:6334");
-    println!("QDRAVT");
 
     let query_embedding = bert.generate_embedding(prompt!(args.prompt)).await.unwrap();
-    println!("query embedding");
-    let search_results = qdrant.search(&args.collection, query_embedding.to_vec().unwrap().clone(), 5, None).await.unwrap();
-    println!("RESULT");
+    let search_results = qdrant.search(&args.collection, query_embedding.to_vec().unwrap().clone(), 10, None).await.unwrap();
+    for result in &search_results {
+        if let Some(payload) = &result.payload {
+            for (_key, value) in payload {
+                let json_string = value.clone().into_json().to_string();
+                match serde_json::from_str::<Value>(&json_string) {
+                    Ok(outer_json) => {
+                        if let Some(inner_json_string) = outer_json.as_str() {
+                            match serde_json::from_str::<Value>(inner_json_string) {
+                                Ok(inner_json) => {
+                                    // Access and print the "content" field
+                                    if let Some(content) = inner_json["content"].as_str() {
+                                        println!("{}", content);
+                                    } else {
+                                        println!("Content field is missing or not a string");
+                                    }
+                                },
+                                Err(e) => {
+                                    println!("Failed to parse inner JSON: {}", e);
+                                }
+                            }
+                        } else {
+                            println!("Outer JSON is not a string");
+                        }
+                    },
+                    Err(e) => {
+                        println!("Failed to parse JSON: {}", e);
+                    }
+                }
+            }
+        } else {
+            println!("No payload or payload is not in the expected format");
+        }
+    }
+
+
     let prompt_for_model = r#"
     {{#chat}}
         {{#system}}
@@ -76,15 +104,14 @@ async fn main() {
         .unwrap()
         .build_model()
         .unwrap();
+
+
     let mut pipe = LLMPipeline::new(&mistral).with_template("query", prompt_for_model);
     pipe.load_context(&Context::new(context).unwrap()).await;
 
-    let response = pipe.execute("query").await.unwrap();
+//    let response = pipe.execute("query").await.unwrap();
 
-    println!("Response: {}", response.content());
+//    println!("Response: {}", response.content());
 
-    for result in search_results {
-        println!("Id:{:}, Score:{:}, {:?}", result.id, result.score, result.payload);  // Modify based on how you want to display the results
-    }
 }
 
