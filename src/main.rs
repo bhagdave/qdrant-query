@@ -90,7 +90,7 @@ async fn main() {
             .iter()
             .filter_map(|found_point| {
                 found_point.payload.as_ref().map(|payload| {
-                    // Assuming you want to convert the whole payload to a JSON string
+                    // convert the whole payload to a JSON string
                     serde_json::to_string(payload).unwrap_or_else(|_| "{}".to_string())
                 })
             })
@@ -108,10 +108,6 @@ async fn main() {
 
     let mut pipe = LLMPipeline::new(&mistral).with_template("query", prompt_for_model);
     pipe.load_context(&Context::new(context).unwrap()).await;
-
-//    let response = pipe.execute("query").await.unwrap();
-
-//    println!("Response: {}", response.content());
 
 }
 
