@@ -30,7 +30,7 @@ async fn main() {
     let qdrant = Qdrant::new("http://localhost:6334");
 
     let query_embedding = bert.generate_embedding(prompt!(args.prompt)).await.unwrap();
-    let search_results = qdrant.search(&args.collection, query_embedding.to_vec().unwrap().clone(), 10, None).await.unwrap();
+    let search_results = qdrant.search(&args.collection, query_embedding.to_vec().unwrap().clone(), 20, None).await.unwrap();
     for result in &search_results {
         if let Some(payload) = &result.payload {
             for (_key, value) in payload {
@@ -109,9 +109,9 @@ async fn main() {
     let mut pipe = LLMPipeline::new(&mistral).with_template("query", prompt_for_model);
     pipe.load_context(&Context::new(context).unwrap()).await;
 
-//    let response = pipe.execute("query").await.unwrap();
+    let response = pipe.execute("query").await.unwrap();
 
-//    println!("Response: {}", response.content());
+    println!("Response: {}", response.content());
 
 }
 
